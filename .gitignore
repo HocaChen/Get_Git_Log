@@ -1,0 +1,9 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+# To ignore files only at the top level directory, but not in its
+# subdirectories, prefix the rule with a `/`
+/*.png
+
+*.png
