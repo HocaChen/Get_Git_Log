@@ -1,13 +1,13 @@
-
+import csv
 import re
 import os
-import subprocess
 import git
 import pandas as pd               
 import matplotlib.pyplot as plt  
 import datetime
-import pathlib
 import shutil
+import calendar
+from datetime import date, timedelta
 
 def filter_author(name_list):
     iter = re.finditer('"(.*)"', name_list)
@@ -61,9 +61,8 @@ def get_total_add_delete_line(data):
     
     return ret
 
-def save_pie_chart(author, add, delete):
+def save_pie_chart(repo, month, author, add, delete):
     plt.figure(figsize=(6,9))    # 顯示圖框架大小
-    datem = datetime.datetime.today()
     
     labels = 'Add Line','Delete Line' 
     data = [add, delete]                        
@@ -72,15 +71,14 @@ def save_pie_chart(author, add, delete):
     plt.title('{}:Add and Delete'.format(author), {"fontsize" : 18})  
     plt.legend(loc = "best")                                   
     # plt.show()
-    plt.savefig('{}/{}_add_delete_line'.format(datem.month,author),   
+    plt.savefig('{}_{}\\{}_add_delete_line'.format(repo, month, author),   
             bbox_inches='tight',               
-            pad_inches=0.0)                   
+            pad_inches=0.0)            
     plt.close() 
 
-def save_add_line_pie_chart(author, add, delete):
+def save_add_line_pie_chart(repo, month, author, add, delete):
     plt.figure(figsize=(9,9))    
-    datem = datetime.datetime.today()
-    
+
     labels = author 
     data = add                        
     plt.pie(data , labels = labels,autopct='%1.1f%%')
@@ -89,7 +87,7 @@ def save_add_line_pie_chart(author, add, delete):
     plt.legend(bbox_to_anchor=(1.05, 1), loc = "best")                                   # 設定圖例及其位置為最佳
     plt.tight_layout()                               
     # plt.show()
-    plt.savefig('{}/Total_add_delete_line'.format(datem.month),   
+    plt.savefig('{}_{}\\Total_add_delete_line'.format(repo, month),   
             bbox_inches='tight',               
             pad_inches=0.0)                   
     plt.close() 
@@ -101,56 +99,112 @@ def save_add_line_pie_chart(author, add, delete):
     plt.legend(bbox_to_anchor=(1.05, 1), loc = "best")                                   # 設定圖例及其位置為最佳
     plt.tight_layout()                               
     # plt.show()
-    plt.savefig('{}/Total_delete_delete_line'.format(datem.month),   
+    plt.savefig('{}_{}/Total_delete_delete_line'.format(repo, month),   
             bbox_inches='tight',               
             pad_inches=0.0)                   
     plt.close() 
     
     # plt.hold(True)
-      
+
+def create_csv_file(year, month):
+    csv_header = ['Repo', 'Author', 'Add Line', 'Delet Line']
+    with open('{}_{}.csv'.format(year, month), 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(csv_header)
+        file.close()
+
+def save_csv_file(year, month, repo, author, add, delete):
+    data = [[repo, author, add, delete]]
+    with open('{}_{}.csv'.format(year, month), 'a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(data)
+        file.close()
     
 if __name__ == '__main__':
     try:
-        team_member = ['abc' , 'def']
-        git_project_dir = 'D:/Program_Project/'
-        date_from = "2022-05-21"
-        date_to = "2022-06-22"
+        team_member = ['jeff' , 'derrick', 'john', 'simon', 'elvis', 'hoca', 'cynthia', 'ingo', 'christoph', 'sandy', 'dory']
+        SCF = 'D:/Program_Project/SCF/AST_SCF'
+        SENTIO = 'D:/Program_Project/SENTIO/Azure_Sentio/AST_SENTIO'
+
+        start_date = date(2022, 5, 21) 
+        end_date = date(2022, 6, 22)    # perhaps date.now()
+
+        date_from = '{}-{}-{}'.format(start_date.year, start_date.month, start_date.day)
+        date_to = '{}-{}-{}'.format(end_date.year, end_date.month, end_date.day)
+
         author = "--pretty=\"%an\""
+        git_repo = []
+        git_repo.append(SENTIO)
+        git_repo.append(SCF)
+        repo_name =[]
+        repo_name.append('SENTIO')
+        repo_name.append('SCF')
         datem = datetime.datetime.today()
+        month_name = calendar.month_name[datem.month]
+        create_csv_file(datem.year, month_name)
         
-        cur = os.getcwd()       
-        dir = '{}\\{}'.format (cur, datem.month)
-        
-        if os.path.exists(dir):
-            shutil.rmtree(dir)
-        os.makedirs(dir)          
-        
-        repo = git.Repo(git_project_dir)
-        status = repo.git.status()
-        #log = repo.git.log('--since=2022-05-21','--author=Jeff','--pretty=tformat:','--numstat')
-        
-        name = repo.git.log('--since='+date_from,'--until='+date_to, author)
-        author_list = filter_author(name)       
-        add_line_list =[]
-        delete_line_list =[]
-        for author_name in team_member:
-            expected_name = get_author_name(author_name , author_list)
-
-            total_increase = 0
-            total_delete = 0
-            for x in expected_name:
-                data = repo.git.log('--author='+x, '--pretty=tformat:','--numstat','--since='+date_from)
-                each_ret = get_total_add_delete_line(data)
-                
-                total_increase = total_increase + each_ret[0]
-                total_delete = total_delete + each_ret[1]
+        #-----Get by date parameter---
+        # delta = end_date - start_date
+        # date_list=[]
+        # add_data_list=[]
+        # delete_data_list=[]
+        # modify_file_list=[]
+        # add_line_number = 0
+        # delete_line_number = 0
+        # modify_line_number = 0
+        #------Get total Line of Code--------
+        idx = 0   
+        for repo_dir in git_repo:
             
-            add_line_list.append(total_increase)
-            delete_line_list.append(total_delete)
-            print('{}:{},{}'.format(author_name,total_increase,total_delete ))
-            save_pie_chart(author_name,total_increase,total_delete)
+            cur = os.getcwd()       
+            dir = '{}\\{}_{}'.format (cur, repo_name[idx], month_name)
+            
+            if os.path.exists(dir):
+                shutil.rmtree(dir)
+            os.makedirs(dir)   
+                        
+            repo = git.Repo(repo_dir)
+            status = repo.git.status()
 
-        save_add_line_pie_chart(team_member, add_line_list, delete_line_list)
+            name = repo.git.log('--since='+date_from,'--until='+date_to, author)
+            author_list = filter_author(name)       
+            add_line_list =[]
+            delete_line_list =[]
+            for author_name in team_member:
+                expected_name = get_author_name(author_name , author_list)
 
+                total_increase = 0
+                total_delete = 0
+                for x in expected_name:
+                    #----Get total line of Code----
+                    data = repo.git.log('--author='+x, '--pretty=tformat:','--numstat','--since='+date_from, '--until='+ date_to)
+                    each_ret = get_total_add_delete_line(data)
+                    
+                    total_increase = total_increase + each_ret[0]
+                    total_delete = total_delete + each_ret[1]
+                    
+                    #----Get line of code by date---
+                    # for i in range(delta.days + 1):
+                    #     prv_date = start_date + timedelta(days=i-1)
+                    #     day = start_date + timedelta(days=i)
+
+                    #     s_date = '{}-{}-{}'.format(prv_date.year, prv_date.month, prv_date.day)
+                    #     e_date = '{}-{}-{}'.format(day.year, day.month, day.day)
+                    #     date_list.append(e_date)
+                    #     data = repo.git.log('--shortstat','--author='+x, '--pretty=tformat:','--since={}'.format(s_date),'--until={}'.format(e_date))
+                    #     print('{}:{}'.format(e_date,data))
+                    
+                
+                add_line_list.append(total_increase)
+                delete_line_list.append(total_delete)
+                print('{}:{},{}'.format(author_name,total_increase,total_delete ))
+                save_pie_chart(repo_name[idx], month_name, author_name,total_increase,total_delete)
+                save_csv_file(datem.year, month_name, repo_name[idx], author_name,total_increase,total_delete)
+
+            save_add_line_pie_chart(repo_name[idx], month_name, team_member, add_line_list, delete_line_list)
+            idx += 1
+        
+        #------Get line of code by date-----
+            
     except Exception as e:
         print(str(e))
