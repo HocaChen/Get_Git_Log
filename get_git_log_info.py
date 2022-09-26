@@ -58,6 +58,15 @@ def get_total_add_delete_line(data):
                 # print(data[indices[i]+1:len(data)])
 
     for line in each_line:
+        # exclude 'csv'
+        csv_index = line.find('csv')
+        if csv_index != -1:
+            continue
+
+        string_index = line.find('Strings')
+        if string_index != -1:
+            continue
+
         char = '\t'
         space_indices = [i.start() for i in re.finditer(char, line)]
         st = line[0:space_indices[0]]
@@ -136,16 +145,16 @@ def save_csv_file(year, month, repo, author, add, delete):
         writer = csv.writer(file)
         writer.writerows(data)
         file.close()
-    
+#     this program will create the csv file
 if __name__ == '__main__':
     try:
-        # team_member = ['jeff' , 'derrick', 'john', 'simon', 'elvis', 'hoca', 'cynthia', 'ingo', 'christoph', 'sandy', 'dory']
-        team_member = ['jeff']
+        team_member = ['jeff' , 'derrick', 'john', 'simon', 'elvis', 'hoca', 'cynthia', 'ingo', 'christoph', 'sandy', 'dory']
+        # team_member = ['derrick']
         SCF = 'D:/Program_Project/SCF/AST_SCF'
-        SENTIO = 'D:/Program_Project/SENTIO/Azure_Sentio/AST_SENTIO'
+        SENTIO = 'D:\Program_Project\Git\AST_SENTIO'
 
-        start_date = date(2022, 6, 22)
-        end_date = date(2022, 7, 21)    # perhaps date.now()
+        start_date = date(2022, 7, 22)
+        end_date = date(2022, 8, 21)    # perhaps date.now()
 
         date_from = '{}-{}-{}'.format(start_date.year, start_date.month, start_date.day)
         date_to = '{}-{}-{}'.format(end_date.year, end_date.month, end_date.day)

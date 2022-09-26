@@ -117,14 +117,16 @@ def get_add_delete_data(data):
     
     return ret
 
+
+# This program will draw the curve by date
 if __name__ == '__main__':
     try:
-        team_member = ['jeff' , 'derrick', 'john', 'simon', 'elvis', 'hoca', 'cynthia', 'ingo', 'christoph', 'sandy', 'dory']
-        # team_member = ['jeff']
+        # team_member = ['jeff' , 'derrick', 'john', 'simon', 'elvis', 'hoca', 'cynthia', 'ingo', 'christoph', 'sandy', 'dory']
+        team_member = ['jeff']
         #
         #
         SCF = 'D:/Program_Project/SCF/AST_SCF'
-        SENTIO = 'D:/Program_Project/SENTIO/Azure_Sentio/AST_SENTIO'
+        SENTIO = 'D:\Program_Project\Git\AST_SENTIO'
         # date_from = "2022-05-21"
         # date_to = "2022-06-22"
         author = "--pretty=\"%an\""
@@ -132,8 +134,8 @@ if __name__ == '__main__':
         repo = git.Repo(SENTIO)
         status = repo.git.status()
 
-        start_date = date(2022, 6, 22)
-        end_date = date(2022, 7, 21)    # perhaps date.now()
+        start_date = date(2022, 7, 22)
+        end_date = date(2022, 8, 21)    # perhaps date.now()
 
         delta = end_date - start_date   # returns timedelta
         date_list=[]

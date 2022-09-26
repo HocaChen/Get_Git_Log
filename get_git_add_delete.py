@@ -190,21 +190,178 @@ def get_add_delete_data(data):
     return ret
 
 
+def get_total_add_delete_line(data):
+    # iter = re.finditer('\t(.*)\t', data)
+    # indices = [m.start(0) for m in iter]
+    # print(indices)
+    char = '\n'
+    indices = [i.start() for i in re.finditer(char, data)]
+
+    ret = []
+    increase_line_list = []
+    delete_line_list = []
+    each_line = []
+    # separate each line
+    for i in range(0, len(indices)):
+        if i == 0:
+            each_line.append(data[0:indices[i]])
+        else:
+            each_line.append(data[indices[i - 1] + 1:indices[i]])
+            # print(data[indices[i-1]+1:indices[i]])
+            if i == len(indices) - 1:
+                each_line.append(data[indices[i] + 1:len(data)])
+                # print(data[indices[i]+1:len(data)])
+
+    for line in each_line:
+        # exclude 'csv'
+        csv_index = line.find('csv')
+        if csv_index != -1:
+            continue
+
+        string_index = line.find('Strings')
+        if string_index != -1:
+            continue
+
+        char = '\t'
+        space_indices = [i.start() for i in re.finditer(char, line)]
+        st = line[0:space_indices[0]]
+        increase_line_list.append(st)
+        st = line[space_indices[0] + 1:space_indices[1]]
+        delete_line_list.append(st)
+
+    total_increase = 0
+    total_delete = 0
+    for x in increase_line_list:
+        if x != '-':
+            total_increase = total_increase + int(x)
+    for x in delete_line_list:
+        if x != '-':
+            total_delete = total_delete + int(x)
+
+    ret.append(len(each_line))
+    ret.append(total_increase)
+    ret.append(total_delete)
+
+    return ret
+
+def create_csv_data(s_date, e_data):
+    team_member = ['jeff', 'derrick', 'john', 'simon', 'elvis', 'hoca', 'cynthia', 'ingo', 'christoph', 'sandy', 'dory',
+                   'jacky']
+    # team_member = ['jeff']
+
+    SCF = 'D:/Program_Project/SCF/AST_SCF'
+    SENTIO = 'D:\Program_Project\Git\AST_SENTIO'
+    author = "--pretty=\"%an\""
+    git_repo = []
+    git_repo.append(SENTIO)
+    git_repo.append(SCF)
+
+    start_date = s_date
+    end_date = e_data  # perhaps date.now()
+
+    delta = end_date - start_date  # returns timedelta
+    date_list = []
+
+    date_from = '{}-{}-{}'.format(start_date.year, start_date.month, start_date.day)
+    date_to = '{}-{}-{}'.format(end_date.year, end_date.month, end_date.day)
+
+    datem = datetime.datetime.today()
+    month_name = calendar.month_name[datem.month]
+    create_csv_file(datem.year, month_name)
+    repo_name = ['SENTIO', 'SCF']
+
+    idx = 0
+    for repo_dir in git_repo:
+
+        repo = git.Repo(repo_dir)
+        status = repo.git.status()
+
+        name = repo.git.log('--since=' + date_from, '--until=' + date_to, author)
+        if name == '':
+            continue
+        author_list = filter_author(name)
+
+        creat_folder(repo_name[idx], month_name)
+        add_line_list = []
+        delete_line_list = []
+
+        for author_name in team_member:
+            expected_name = get_author_name(author_name, author_list)
+
+            total_add_line_number = 0
+            total_delete_line_number = 0
+            total_modify_line_number = 0
+
+            add_data_list = []
+            delete_data_list = []
+            modify_file_list = []
+            date_list = []
+
+            for i in range(delta.days + 1):
+                prv_date = start_date + timedelta(days=i - 1)
+                day = start_date + timedelta(days=i)
+
+                s_date = '{}-{}-{}'.format(prv_date.year, prv_date.month, prv_date.day)
+                e_date = '{}-{}-{}'.format(day.year, day.month, day.day)
+                date_list.append(e_date)
+
+                cnt = 0
+                data_temp = []
+                is_diff = True
+                for x in expected_name:
+                    # data = repo.git.log('--shortstat', '--author=' + x, '--pretty=tformat:',
+                    #                     '--since={}'.format(s_date), '--until={}'.format(e_date))
+                    data = repo.git.log('--author=' + x, '--pretty=tformat:', '--numstat', '--since=' + s_date,
+                                        '--until=' + e_date)
+                    ret = [0, 0, 0]
+                    if data != '':
+                        if not data_temp:
+                            ret = get_total_add_delete_line(data)
+                        for d in data_temp:
+                            if d == data:
+                                is_diff = False
+
+                        if is_diff and len(data_temp) != 0:
+                            ret = get_total_add_delete_line(data)
+                        data_temp.append(data)
+
+                    print('{}_{}:Add:{},Delete:{}'.format(x, e_date, ret[1], ret[2]))
+                    total_add_line_number = total_add_line_number + ret[1]
+                    total_delete_line_number = total_delete_line_number + ret[2]
+                    total_modify_line_number = total_modify_line_number + ret[0]
+
+                add_data_list.append(total_add_line_number)
+                delete_data_list.append(total_delete_line_number)
+                modify_file_list.append(total_modify_line_number)
+
+            print('{}:Add:{},Delete:{}'.format(author_name, total_add_line_number, total_delete_line_number))
+
+            add_line_list.append(total_add_line_number)
+            delete_line_list.append(total_delete_line_number)
+            save_csv_file(datem.year, month_name, repo_name[idx], author_name, total_add_line_number,
+                          total_delete_line_number)
+            if total_add_line_number != 0 and total_delete_line_number != 0:
+                save_pie_chart(repo_name[idx], month_name, author_name, total_add_line_number, total_delete_line_number)
+
+        save_add_line_pie_chart(repo_name[idx], month_name, team_member, add_line_list, delete_line_list)
+        idx = idx + 1
+
+
+#  This program will generate the pie chart and CSV files
 if __name__ == '__main__':
     try:
-        # team_member = ['jeff' , 'derrick', 'john', 'simon', 'elvis', 'hoca', 'cynthia', 'ingo', 'christoph', 'sandy', 'dory']
-        team_member = ['jeff']
-        #
-        #
+        team_member = ['jeff' , 'derrick', 'john', 'simon', 'elvis', 'hoca', 'cynthia', 'ingo', 'christoph', 'sandy', 'dory', 'jacky']
+        # team_member = ['jeff']
+
         SCF = 'D:/Program_Project/SCF/AST_SCF'
-        SENTIO = 'D:/Program_Project/SENTIO/Azure_Sentio/AST_SENTIO'
+        SENTIO = 'D:\Program_Project\Git\AST_SENTIO'
         author = "--pretty=\"%an\""
         git_repo = []
         git_repo.append(SENTIO)
         git_repo.append(SCF)
 
-        start_date = date(2022, 6, 22)
-        end_date = date(2022, 7, 21)  # perhaps date.now()
+        start_date = date(2022, 7, 22)
+        end_date = date(2022, 8, 21)  # perhaps date.now()
 
         delta = end_date - start_date  # returns timedelta
         date_list = []
@@ -256,19 +413,20 @@ if __name__ == '__main__':
                     data_temp = []
                     is_diff = True
                     for x in expected_name:
-                        data = repo.git.log('--shortstat', '--author=' + x, '--pretty=tformat:',
-                                            '--since={}'.format(s_date), '--until={}'.format(e_date))
-
+                        # data = repo.git.log('--shortstat', '--author=' + x, '--pretty=tformat:',
+                        #                     '--since={}'.format(s_date), '--until={}'.format(e_date))
+                        data = repo.git.log('--author=' + x, '--pretty=tformat:', '--numstat', '--since=' + s_date,
+                                            '--until=' + e_date)
                         ret = [0, 0, 0]
                         if data != '':
                             if not data_temp:
-                                ret = get_add_delete_data(data)
+                                ret = get_total_add_delete_line(data)
                             for d in data_temp:
                                 if d == data:
                                     is_diff = False
 
                             if is_diff and len(data_temp) != 0:
-                                ret = get_add_delete_data(data)
+                                ret = get_total_add_delete_line(data)
                             data_temp.append(data)
 
                         print('{}_{}:Add:{},Delete:{}'.format(x, e_date, ret[1], ret[2]))
